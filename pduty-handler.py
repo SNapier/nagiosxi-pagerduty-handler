@@ -186,7 +186,7 @@ def sendPagerDutyEvent(meta, payload):
     
     #DO NOT USE THIS SECRET STORAGE METHOD FOR PRODUCTION. STORING THE API KEY SHOULD BE DONE
     #WITH EITHER ENV VARS OR SOME OTHER SORT OF SECRETS MANAGEMENT METHOD.
-    pd_token = '5dsyWDUfJiLTBo8tynuj'
+    pd_token = '<changeme>'
 
     #OUR POST AS A SESSION WITH THE TOKEN IN THE HEADER
     pd_session = requests.Session()
