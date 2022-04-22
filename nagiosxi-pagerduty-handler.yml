@@ -1,0 +1,5 @@
+- pgrduty:
+    apikey: pagerduty-token
+    routingkey: pagerduty-routingkey
+    url: https://events.pagerduty.com/v2/enqueue
+    
