@@ -1,3 +1,5 @@
+#/usr/bin/python3
+
 import requests, sys, argparse, os, logging, json, time, yaml
 from time import sleep
 from logging.handlers import RotatingFileHandler
@@ -5,14 +7,14 @@ from logging.handlers import RotatingFileHandler
 #NAME
 appName = "nagiosxi-pagerduty-handler.py"
 #VERSION
-appVersion = "0.1.0"
+appVersion = "0.1.1"
 
 #PATHS
 #DEPENDING ON WHERE YOU WANT TO PUT THE REPORTS
 appPath = os.path.dirname(os.path.realpath(__file__))
 
 #PUT THE LOG IN SAME DIR BY DEFAULT
-log_dir = appPath+"\\"
+log_dir = appPath+"/"
 
 #LOGGING
 ## CREATE LOGGER
@@ -45,15 +47,15 @@ logger.addHandler(fh)
 #TIME TO SLEEP BETWEEN RETRY ATTEMPTS
 sleepDuration = 5
 
-##NAGIOSXI-PAGERDUTY-HANDLER.YAML
+##NAGIOSXI-PAGERDUTY-HANDLER.YML
 ##APIKEY
 ##ROUTINGKEY
 ##PAGERDUTY URL
 def nagiosxiConfig():
-    with open(appPath+"\\nagiosxi-pagerduty-handler.yaml", "r") as yamlfile:
+    with open(appPath+"/nagiosxi-pagerduty-handler.yml", "r") as yamlfile:
         try:
-            data = yaml.load(yamlfile, Loader=yaml.FullLoader)
-            r = {"url":data[0]["pgrduty"]["url"],"apikey":data[0]["pgrduty"]["apikey"],"routekey":data[0]["pgrduty"]["routingkey"]}
+            data = yaml.safe_load(yamlfile)
+            r = {"url":data[0]["pgrduty"]["url"],"apikey":data[0]["pgrduty"]["apikey"],"routekey":data[0]["pgrduty"]["routekey"]}
         except Exception as e:
             logger.error("%s",e)
             r = False
@@ -111,26 +113,21 @@ def makeJudgementCall(meta):
             #FAILED IS BANNED JUDGEMENT CALL
             logger.info("DISCARDED EVENT %s IS IN THE BANNED LIST",meta.hostname)
             sys.exit(2)
+        isindowntime = isInDowntime(meta)
+        if isindowntime:
+            #FAILED IN DOWNTIME JUDGEMENT CALL
+            logger.info("DISCARDED EVENT %s IS IN DOWNTIME",meta.summary)
+            sys.exit(2)
+        #JUDGEMENT CALL: IS THIS A HARD STATE?
+        ishardstate = isHardState(meta)
+        if ishardstate:
+            #PASSED JUDGEMENT CALLS
+            isvalid = True
         else:
-            #JUDGEMENT CALL: IS THERE SCHEDULED DOWNTIME?
-            isindowntime = isInDowntime(meta)
-            if isindowntime:
-                #FAILED IN DOWNTIME JUDGEMENT CALL
-                logger.info("DISCARDED EVENT %s IS IN DOWNTIME",meta.servicename)
-                sys.exit(2)
-            else:
-                #JUDGEMENT CALL: IS THIS A HARD STATE?
-                ishardstate = isHardState(meta)
-                if ishardstate:
-                    #PASSED JUDGEMENT CALLS
-                    logger.info("DISCARDED SOFT STATE EVENT")
-                    isvalid = True
-                else:
-                    #FAILED HARD STATE JUDGEMENT CALL
-                    #LOG AND EXIT
-                    logger.critical("HANDLER FAILED TO PROCESS EVENT JUDGEMENT CALLS")
-                    sys.exit(2)
-                    
+            #FAILED HARD STATE JUDGEMENT CALL
+            #LOG AND EXIT
+            logger.info("DISCARDED EVENT %s IS IN SOFT STATE",meta.summary)
+            sys.exit(2)
     else:
         #FAILED HAS HOSTNAME JUDGEMEMT CALL
         #LOG AND EXIT
@@ -395,7 +392,7 @@ if __name__ == "__main__" :
     #  --source="$HOSTNAME$",
     #  --component="MyComponent",
     #  --group="MyGroup",
-    #  --class="MyClass",
+    #  --mclass="MyClass",
     #  --customdetails="$SERVICEOUT$"
 
     event.add_argument(
